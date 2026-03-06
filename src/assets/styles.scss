@@ -2,3 +2,10 @@
 @use 'primeicons/primeicons.css';
 @use '@/assets/layout/layout.scss';
 @use '@/assets/demo/demo.scss';
+
+
+.layout-topbar-logo img,
+.logo-dark-invert {
+    filter: invert(33%) sepia(10%) saturate(1236%) hue-rotate(115deg) brightness(73%) contrast(200%);
+    transition: filter 0.3s ease;
+}

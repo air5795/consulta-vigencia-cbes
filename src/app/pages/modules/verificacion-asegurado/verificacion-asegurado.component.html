@@ -1,0 +1,195 @@
+<p-toast position="top-center"></p-toast>
+
+<!-- ENCABEZADO DE PAGINA -->
+<div class="page-header">
+    <div class="page-header-icon">
+        <i class="pi pi-shield"></i>
+    </div>
+    <div class="page-header-content">
+        <h1 class="page-header-title">Verificación de Asegurado</h1>
+        <p class="page-header-subtitle">
+            Consulta y verificación de vigencia del asegurado en el sistema CBES
+        </p>
+
+    </div>
+</div>
+
+<!-- LAYOUT 2 COLUMNAS -->
+<div class="two-col-layout">
+
+    <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+    <div class="col-search">
+        <div class="card search-card">
+            <div class="section-title-row">
+                <div class="section-title-icon">
+                    <i class="pi pi-search"></i>
+                </div>
+                <div>
+                    <span class="section-title">Buscar Asegurado</span>
+                    <span class="section-subtitle">Ingrese los criterios de búsqueda</span>
+                </div>
+            </div>
+
+            <p-divider></p-divider>
+
+            <!-- FORMULARIO REACTIVO -->
+            <form [formGroup]="consultaForm" (ngSubmit)="consultar()" class="search-form">
+
+                <div class="field-group">
+                    <label for="tipoBusqueda" class="field-label">
+                        <i class="pi pi-list-check"></i>
+                        Tipo de Búsqueda
+                    </label>
+                    <p-select id="tipoBusqueda" formControlName="tipoBusqueda" [options]="tiposBusqueda"
+                        optionLabel="label" optionValue="value" placeholder="Seleccione el tipo" styleClass="w-full">
+                    </p-select>
+                    <p-message *ngIf="f['tipoBusqueda'].invalid && f['tipoBusqueda'].touched" severity="error"
+                        text="Seleccione un tipo de búsqueda" styleClass="mt-1 w-full">
+                    </p-message>
+                </div>
+
+                <div class="field-group">
+                    <label for="valor" class="field-label">
+                        <i class="pi pi-id-card"></i>
+                        {{ f['tipoBusqueda'].value === 'ci' ? 'Número de Documento' : 'Matrícula' }}
+                    </label>
+
+                    <!-- Input para Carnet de Identidad -->
+                    <input *ngIf="f['tipoBusqueda'].value === 'ci'" id="valor_ci" type="text" pInputText
+                        formControlName="valor" placeholder="Ej. 123456789" class="w-full uppercase-input" />
+
+                    <!-- Input Mask para Matrícula (Ej. 90-5315 ATE) -->
+                    <p-inputmask *ngIf="f['tipoBusqueda'].value === 'matricula'" id="valor_mat" formControlName="valor"
+                        [style]="{'width':'100%'}" mask="99-9999 aaa" placeholder="Ej. 90-5315 ATE"
+                        styleClass="w-full uppercase-input">
+                    </p-inputmask>
+
+                    <p-message *ngIf="f['valor'].errors?.['required'] && f['valor'].touched" severity="error"
+                        text="Este campo es requerido" styleClass="mt-1 w-full">
+                    </p-message>
+                    <p-message *ngIf="f['valor'].errors?.['minlength'] && f['valor'].touched" severity="error"
+                        text="Debe tener al menos 4 caracteres" styleClass="mt-1 w-full">
+                    </p-message>
+                </div>
+
+                <div class="form-actions">
+                    <p-button label="Consultar" icon="pi pi-search" type="submit" [loading]="isLoading"
+                        [disabled]="consultaForm.invalid || isLoading" styleClass="w-full btn-consultar">
+                    </p-button>
+
+                    <p-button label="Limpiar" icon="pi pi-eraser" type="button" severity="secondary" [outlined]="true"
+                        (onClick)="limpiar()" styleClass="w-full btn-limpiar" [disabled]="isLoading">
+                    </p-button>
+                </div>
+
+            </form>
+
+            <!-- Estado vacio mientras no hay resultado -->
+            <div class="empty-state" *ngIf="!aseguradoData && !isLoading">
+                <i class="pi pi-user-plus empty-state-icon"></i>
+                <span class="empty-state-text">Realice una búsqueda para ver los datos del asegurado</span>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="col-result">
+        <div class="card patient-card" *ngIf="aseguradoData; else sinResultado" [ngClass]="{
+                'patient-card--vigente':    aseguradoData.ase_estado === 'VIGENTE',
+                'patient-card--no-vigente': aseguradoData.ase_estado !== 'VIGENTE'
+            }">
+
+            <!-- Encabezado con Nombre, Estado y Botón -->
+            <div class="patient-header" [ngClass]="{
+                    'patient-header--vigente':    aseguradoData.ase_estado === 'VIGENTE',
+                    'patient-header--no-vigente': aseguradoData.ase_estado !== 'VIGENTE'
+                }">
+                <div class="patient-title-group">
+                    <h2 class="patient-name">
+                        <i class="pi"
+                            [ngClass]="aseguradoData.ase_sexo === 'M' ? 'pi-user' : (aseguradoData.ase_sexo === 'F' ? 'pi-user' : 'pi-user')"></i>
+                        {{aseguradoData.ase_nom}} {{aseguradoData.ase_apat}} {{aseguradoData.ase_amat}}
+                    </h2>
+                </div>
+
+                <div class="patient-status-group">
+                    <span class="patient-badge patient-badge--large" [ngClass]="{
+                            'badge-vigente':    aseguradoData.ase_estado === 'VIGENTE',
+                            'badge-no-vigente': aseguradoData.ase_estado !== 'VIGENTE'
+                        }">
+                        {{aseguradoData.ase_estado}}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Datos Institucionales -->
+            <div class="data-section">
+                <h3 class="data-section-title"><i class="pi pi-building"
+                        style="margin-right:0.5rem; color:var(--p-primary-color);"></i> Datos Institucionales</h3>
+                <div class="data-list">
+                    <div class="data-row">
+                        <div class="data-label"><i class="pi pi-briefcase icon-label"></i> Empresa / Patronal:</div>
+                        <div class="data-value">{{aseguradoData.emp_nom}} <span
+                                *ngIf="aseguradoData.emp_npatronal">({{aseguradoData.emp_npatronal}})</span></div>
+                    </div>
+                    <div class="data-row">
+                        <div class="data-label"><i class="pi pi-hashtag icon-label"></i> Matrícula:</div>
+                        <div class="data-value">{{aseguradoData.ase_mat}}</div>
+                    </div>
+                    <div class="data-row">
+                        <div class="data-label"><i class="pi pi-tag icon-label"></i> Tipo de Asegurado:</div>
+                        <div class="data-value">{{aseguradoData.ase_tipo}}</div>
+                    </div>
+                    <div class="data-row">
+                        <div class="data-label"><i class="pi pi-info-circle icon-label"></i> Estado de Vigencia:</div>
+                        <div class="data-value">{{aseguradoData.ase_estado === 'VIGENTE' ? 'Vigente' : 'Inactivo (' +
+                            aseguradoData.ase_estado + ')'}}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Datos Personales -->
+            <div class="data-section">
+                <h3 class="data-section-title"><i class="pi pi-user"
+                        style="margin-right:0.5rem; color:var(--p-primary-color);"></i> Datos Personales</h3>
+                <div class="data-list">
+                    <div class="data-row">
+                        <div class="data-label"><i class="pi pi-id-card icon-label"></i> Carnet de Identidad:</div>
+                        <div class="data-value">
+                            {{aseguradoData.ase_ci}}{{aseguradoData.ase_ci_com ? ' - ' + aseguradoData.ase_ci_com : ''}}
+                        </div>
+                    </div>
+                    <div class="data-row">
+                        <div class="data-label"><i class="pi pi-calendar icon-label"></i> Fecha de Nacimiento:</div>
+                        <div class="data-value">{{aseguradoData.ase_fec_nac}} <span
+                                *ngIf="calcularEdad(aseguradoData.ase_fec_nac) !== null">({{calcularEdad(aseguradoData.ase_fec_nac)}}
+                                años)</span></div>
+                    </div>
+                    <div class="data-row">
+                        <div class="data-label"><i class="pi pi-users icon-label"></i> Sexo:</div>
+                        <div class="data-value">{{aseguradoData.ase_sexo === 'M' ? 'Masculino' : (aseguradoData.ase_sexo
+                            === 'F' ? 'Femenino' : aseguradoData.ase_sexo)}}</div>
+                    </div>
+                    <div class="data-row" *ngIf="aseguradoData.ase_telf">
+                        <div class="data-label"><i class="pi pi-phone icon-label"></i> Teléfono:</div>
+                        <div class="data-value">{{aseguradoData.ase_telf}}</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Placeholder cuando no hay resultados -->
+        <ng-template #sinResultado>
+            <div class="card placeholder-card">
+                <div class="placeholder-content">
+                    <i class="pi pi-search placeholder-icon"></i>
+                    <span class="placeholder-title">Sin resultados aún</span>
+                    <span class="placeholder-subtitle">Los datos del asegurado aparecerán aquí después de realizar la
+                        consulta</span>
+                </div>
+            </div>
+        </ng-template>
+    </div>
+
+</div>
